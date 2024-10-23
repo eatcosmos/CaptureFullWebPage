@@ -19,6 +19,11 @@ async function captureVisibleTab() {
 }
 
 async function captureFullPage() {
+  // 保存原始滚动条样式
+  const originalStyle = document.documentElement.style.overflow;
+  // 隐藏滚动条
+  document.documentElement.style.overflow = 'hidden';
+
   const devicePixelRatio = window.devicePixelRatio || 1;
   const fullHeight = Math.max(
     document.documentElement.scrollHeight,
@@ -60,7 +65,6 @@ async function captureFullPage() {
 
     await delay(1000);
   }
-
   sendLog(`共捕获 ${captures.length} 个部分`);
 
   const canvas = document.createElement('canvas');
@@ -94,6 +98,8 @@ async function captureFullPage() {
   chrome.runtime.sendMessage({ type: 'saveFinalImage', dataUrl: finalDataURL });
 
   window.scrollTo(0, originalScrollPos);
+  // 恢复滚动条
+  document.documentElement.style.overflow = originalStyle;
   sendLog('已恢复原始滚动位置');
 }
 
