@@ -26,34 +26,38 @@ async function captureFullPage() {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const originalScrollPos = window.scrollY;
+  const pageTitle = document.title.replace(/[<>:"/\\|?*]/g, '_');
   
   sendLog(`页面总高度: ${fullHeight}px, 视口高度: ${viewportHeight}px`);
 
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  canvas.width = viewportWidth;
-  canvas.height = fullHeight;
-  
   const captures = [];
+  let partIndex = 1;
 
   for (let currentPos = 0; currentPos < fullHeight; currentPos += viewportHeight) {
     window.scrollTo(0, currentPos);
     sendLog(`滚动到位置: ${currentPos}px`);
-    await delay(500); // 等待滚动和页面重绘
+    await delay(500);
     
-    sendLog('开始捕获当前视口...');
     try {
       const dataUrl = await captureVisibleTab();
       sendLog('视口捕获完成');
       captures.push({ dataUrl, y: currentPos });
-      chrome.runtime.sendMessage({type: 'previewPart', dataUrl});
+      
+      // 保存每个部分
+      chrome.runtime.sendMessage({
+        type: 'saveScreenshot',
+        dataUrl: dataUrl,
+        filename: `${pageTitle}/${pageTitle}-${partIndex}.png`
+      });
+      
+      partIndex++;
     } catch (error) {
       sendLog(`捕获失败: ${error.message}`);
-      await delay(1000); // 如果失败,等待更长时间再重试
-      currentPos -= viewportHeight; // 重试当前位置
+      await delay(1000);
+      currentPos -= viewportHeight;
     }
 
-    await delay(1000); // 限制截图频率
+    await delay(1000);
   }
   
   sendLog(`共捕获 ${captures.length} 个部分`);
@@ -96,5 +100,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({error: error.message});
     });
     return true; // 表示我们会异步发送响应
+  }
+  if (request.action === "captureVisibleTab") {
+    const pageTitle = document.title.replace(/[<>:"/\\|?*]/g, '_'); // 清理标题中的非法字符
+    chrome.runtime.sendMessage({
+      action: "processCapture",
+      pageTitle: pageTitle
+    });
   }
 });
