@@ -45,11 +45,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   // 在 chrome.runtime.onMessage.addListener 中添加以下代码
   if (request.type === 'saveFinalImage') {
-    const filename = 'final-captured-image.png';
+    const pageTitle = request.pageTitle;
+    const filename = `${pageTitle}.png`;
     chrome.downloads.download({
       url: request.dataUrl,
       filename: filename,
-      saveAs: true
+      saveAs: false
     });
+    
+    // 复制到剪贴板
+    fetch(request.dataUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const item = new ClipboardItem({'image/png': blob});
+        navigator.clipboard.write([item]);
+      });
   }
 });
