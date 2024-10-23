@@ -43,6 +43,7 @@ document.getElementById('capture').addEventListener('click', async () => {
       
       const img = document.createElement('img');
       img.src = response.dataUrl;
+      img.style.imageRendering = 'pixelated';  // 保持像素清晰
       img.style.maxWidth = '100%';
       img.style.height = 'auto';
       document.getElementById('preview').appendChild(img);
