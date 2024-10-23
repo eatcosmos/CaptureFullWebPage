@@ -40,4 +40,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     });
   }
+  
+  // 在 chrome.runtime.onMessage.addListener 中添加以下代码
+  if (request.type === 'saveFinalImage') {
+    const filename = 'final-captured-image.png';
+    chrome.downloads.download({
+      url: request.dataUrl,
+      filename: filename,
+      saveAs: true
+    });
+  }
 });

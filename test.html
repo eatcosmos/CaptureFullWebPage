@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge Images Vertically</title>
+</head>
+<body>
+    <input type="file" id="fileInput" multiple accept="image/jpeg, image/png, image/jpg" />
+    <button id="mergeButton">Merge Images</button>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <a id="downloadLink">Download Merged Image</a>
+
+    <script>
+        document.getElementById('mergeButton').addEventListener('click', async () => {
+            const files = Array.from(document.getElementById('fileInput').files);
+            if (files.length === 0) {
+                alert('Please select images!');
+                return;
+            }
+
+            const images = await loadImages(files);
+            const totalHeight = images.reduce((sum, img) => sum + img.height, 0);
+            const maxWidth = Math.max(...images.map(img => img.width));
+
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = maxWidth;
+            canvas.height = totalHeight;
+
+            let yOffset = 0;
+            images.forEach(img => {
+                ctx.drawImage(img, 0, yOffset, img.width, img.height);
+                yOffset += img.height;
+            });
+
+            const mergedImageURL = canvas.toDataURL('image/jpeg');
+            downloadImage(mergedImageURL, 'merged-image.jpg');
+        });
+
+        function loadImages(files) {
+            return Promise.all(files.map(file => {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.src = URL.createObjectURL(file);
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                });
+            }));
+        }
+
+        function downloadImage(dataURL, filename) {
+            const link = document.getElementById('downloadLink');
+            link.href = dataURL;
+            link.download = filename;
+            link.click();
+        }
+    </script>
+</body>
+</html>

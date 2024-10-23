@@ -62,30 +62,34 @@ async function captureFullPage() {
   
   sendLog(`共捕获 ${captures.length} 个部分`);
 
-  for (let i = 0; i < captures.length; i++) {
-    const capture = captures[i];
-    const img = new Image();
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
-      img.src = capture.dataUrl;
-    });
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
 
-    if (i === captures.length - 1) {
-      // 处理最后一张图片
-      const remainingHeight = fullHeight - capture.y;
-      context.drawImage(img, 0, 0, img.width, remainingHeight, 0, capture.y, img.width, remainingHeight);
-    } else {
-      context.drawImage(img, 0, 0, img.width, viewportHeight, 0, capture.y, img.width, viewportHeight);
-    }
-    sendLog(`已将捕获部分 ${i+1} 绘制到 y=${capture.y}px`);
-  }
-  
+  // 计算总高度
+  const totalHeight = captures.reduce((sum, capture) => sum + viewportHeight, 0);
+  canvas.width = viewportWidth;
+  canvas.height = totalHeight;
+
+  let yOffset = 0;
+  captures.forEach(capture => {
+    const img = new Image();
+    img.onload = () => {
+      context.drawImage(img, 0, yOffset, viewportWidth, viewportHeight);
+      yOffset += viewportHeight;
+    };
+    img.src = capture.dataUrl;
+  });
+
+  // 等待所有图片加载并绘制完成
+  await new Promise(resolve => setTimeout(resolve, 1000 * captures.length));
+
+  // 生成最终图像并发送
+  const finalDataURL = canvas.toDataURL('image/png');
+  sendLog('生成最终图像...');
+  chrome.runtime.sendMessage({type: 'saveFinalImage', dataUrl: finalDataURL});
+
   window.scrollTo(0, originalScrollPos);
   sendLog('已恢复原始滚动位置');
-  
-  sendLog('生成最终图像...');
-  return canvas.toDataURL('image/png');
 }
 
 // 监听消息
